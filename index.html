@@ -1,0 +1,1490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Timetable</title>
+<style>
+:root{
+  --bg:#f3f4f6;
+  --surface:#fff;
+  --surface-soft:#f8f9fb;
+  --text:#111318;
+  --muted:#7a808b;
+  --line:#e3e5e9;
+  --line-strong:#cfd3d9;
+  --blue:#2563eb;
+  --blue-soft:#edf3ff;
+  --blue-soft-2:#f5f8ff;
+  --green:#16865a;
+  --danger:#c73737;
+  --shadow:0 8px 24px rgba(20,24,31,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.app{width:min(1160px,calc(100% - 32px));margin:0 auto;padding:28px 0 60px}
+
+/* Header */
+.header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  padding-bottom:20px;
+  border-bottom:2px solid var(--text);
+}
+.eyebrow{
+  margin:0 0 4px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.brand-row{display:flex;align-items:flex-end;gap:16px}
+h1{margin:0;font-size:40px;line-height:1;letter-spacing:-2px}
+.clock{
+  margin-bottom:2px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:12px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.clock-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 0 4px rgba(22,134,90,.10);
+}
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{
+  border:1px solid var(--line-strong);
+  background:var(--surface);
+  color:var(--text);
+  border-radius:8px;
+  padding:9px 13px;
+  font-size:13px;
+  transition:.15s ease;
+}
+.btn:hover{border-color:#aab0b8;background:#fff;transform:translateY(-1px)}
+.btn.primary{background:#15171b;border-color:#15171b;color:#fff}
+.btn.primary:hover{background:#000}
+
+/* Time format toggle */
+.format-toggle{
+  display:flex;
+  align-items:center;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  overflow:hidden;
+  background:#fff;
+}
+.format-toggle button{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  padding:8px 10px;
+  font-size:11px;
+  font-weight:800;
+}
+.format-toggle button.active{
+  background:#15171b;
+  color:#fff;
+}
+
+/* Days */
+.daybar{
+  margin:20px 0 30px;
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  background:var(--surface);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  border-radius:10px;
+  overflow:hidden;
+}
+.daytab{
+  position:relative;
+  min-height:74px;
+  border:0;
+  border-right:1px solid var(--line);
+  background:transparent;
+  text-align:left;
+  padding:12px 13px;
+  color:var(--muted);
+}
+.daytab:last-child{border-right:0}
+.daytab:hover{background:var(--surface-soft)}
+.daytab.today .day-short{color:var(--blue)}
+.daytab.active{background:var(--blue-soft);color:var(--text)}
+.daytab.active::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--blue)
+}
+.day-short{display:block;font-size:11px;font-weight:800;letter-spacing:.6px}
+.day-full{display:block;font-size:10px;margin-top:4px;color:#9aa0a9}
+.day-number{position:absolute;right:13px;top:10px;font-size:20px;font-weight:800}
+.day-count{position:absolute;right:13px;bottom:10px;font-size:10px;color:#a2a7af;font-weight:700}
+.daytab.active .day-count{color:var(--blue)}
+.today-label{
+  position:absolute;
+  left:13px;
+  bottom:10px;
+  font-size:9px;
+  color:var(--blue);
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+}
+
+/* Schedule */
+.section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:12px;
+}
+.section-head-left{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.section-head h2{margin:0;font-size:27px;letter-spacing:-1px}
+.section-date{font-size:11px;color:var(--muted)}
+.section-meta{font-size:12px;color:var(--muted)}
+
+.schedule{
+  background:var(--surface);
+  border-top:2px solid #15171b;
+  border-bottom:1px solid var(--line);
+  box-shadow:var(--shadow);
+}
+.class-row{
+  position:relative;
+  display:grid;
+  grid-template-columns:128px minmax(0,1fr) 125px 94px;
+  gap:20px;
+  align-items:center;
+  padding:17px 18px;
+  min-height:96px;
+  border-bottom:1px solid var(--line);
+  transition:background .15s ease,opacity .2s ease;
+}
+.class-row:last-child{border-bottom:0}
+.class-row:hover{background:#fcfcfd}
+
+/* State styling */
+.class-row.past{
+  background:#f6f7f8;
+}
+.class-row.past .subject,
+.class-row.past .room,
+.class-row.past .time-main{
+  color:#9aa0a8;
+}
+.class-row.past .type{
+  background:#eceef1;
+  color:#8e949c;
+}
+.class-row.current{
+  background:var(--blue-soft-2);
+}
+.class-row.current::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:4px;
+  background:var(--blue);
+}
+.class-row.next{
+  box-shadow:inset 0 -1px 0 var(--line);
+}
+.current-label{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-left:8px;
+  vertical-align:middle;
+  color:var(--blue);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+}
+.current-label i{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--blue);
+  animation:pulse 1.5s infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.35;transform:scale(.75)}
+}
+
+.time-main{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.time-duration{margin-top:5px;font-size:10px;color:#a3a8b0}
+.subject{font-size:16px;font-weight:760;letter-spacing:-.2px;line-height:1.28}
+.submeta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.type{
+  display:inline-flex;
+  background:var(--blue-soft);
+  color:var(--blue);
+  padding:3px 7px;
+  border-radius:5px;
+  font-size:10px;
+  font-weight:800;
+}
+.room-title{
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:#a1a6ae;
+  margin-bottom:4px;
+}
+.room{font-size:13px;font-weight:750}
+.row-actions{display:flex;justify-content:flex-end;gap:5px}
+.icon-btn{
+  border:1px solid var(--line);
+  background:#fff;
+  color:#68707b;
+  border-radius:6px;
+  min-width:35px;
+  min-height:35px;
+  padding:6px 9px;
+  font-size:11px;
+}
+.icon-btn:hover{border-color:#b2b7bf;color:var(--text)}
+.icon-btn.delete{color:var(--danger)}
+.empty{
+  min-height:280px;display:grid;place-items:center;text-align:center;
+  color:var(--muted);padding:40px
+}
+.empty strong{display:block;color:var(--text);font-size:18px;margin-bottom:5px}
+
+/* Progress bar on current class */
+.progress-wrap{
+  grid-column:2 / span 2;
+  margin-top:-3px;
+  padding-right:0;
+}
+.progress-meta{
+  display:flex;justify-content:space-between;gap:10px;
+  margin-bottom:5px;font-size:9px;color:var(--muted)
+}
+.progress-track{
+  height:4px;background:#dfe7f7;border-radius:999px;overflow:hidden;
+}
+.progress-bar{
+  height:100%;width:0;background:var(--blue);border-radius:999px;
+  transition:width .7s linear;
+}
+
+/* Modal */
+.overlay{
+  position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  padding:18px;background:rgba(10,13,18,.5);z-index:100;
+}
+.modal{
+  width:min(620px,100%);
+  background:var(--surface);
+  border-radius:11px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.22);
+}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:15px;padding:19px 21px;border-bottom:1px solid var(--line);
+}
+.modal-title{margin:0;font-size:20px;letter-spacing:-.5px}
+.close-btn{border:0;background:transparent;color:#888;font-size:26px;line-height:1;padding:0 2px}
+.modal-body{padding:20px 21px}
+.json-info{margin:-3px 0 12px;color:var(--muted);font-size:11px;line-height:1.5}
+textarea{
+  width:100%;height:300px;resize:vertical;border:1px solid var(--line-strong);
+  border-radius:7px;background:#fafbfc;padding:13px;outline:none;
+  font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace
+}
+textarea:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+.modal-foot{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  border-top:1px solid var(--line);padding:14px 21px
+}
+.status{min-height:17px;color:#25814c;font-size:11px}
+.status.error{color:var(--danger)}
+
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field.full{grid-column:1/-1}
+label{
+  display:block;margin-bottom:6px;font-size:10px;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;color:var(--muted)
+}
+input{
+  width:100%;padding:10px 11px;border:1px solid var(--line-strong);
+  border-radius:7px;outline:none;background:#fff;color:var(--text)
+}
+input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+
+.confirm-box{
+  width:min(420px,100%);background:#fff;border-radius:11px;padding:24px;
+  box-shadow:0 30px 90px rgba(0,0,0,.25)
+}
+.confirm-icon{
+  width:38px;height:38px;border-radius:9px;background:#fff1f1;color:var(--danger);
+  display:grid;place-items:center;font-size:19px;font-weight:900;margin-bottom:14px
+}
+.confirm-title{margin:0 0 7px;font-size:20px;letter-spacing:-.5px}
+.confirm-text{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.confirm-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:21px}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+
+/* Mobile */
+@media(max-width:900px){
+  .class-row{grid-template-columns:110px minmax(0,1fr) 95px 82px;gap:14px}
+}
+@media(max-width:700px){
+  .app{width:min(100% - 20px,620px);padding:18px 0 45px}
+  .header{align-items:flex-start;flex-direction:column;gap:14px}
+  .brand-row{align-items:flex-start;flex-direction:column;gap:8px}
+  h1{font-size:34px}
+  .clock{margin-bottom:0}
+  .header-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .header-actions .btn:first-of-type{grid-column:1}
+  .header-actions .btn:nth-of-type(2){grid-column:2}
+  .format-toggle{grid-column:1 / -1}
+  .format-toggle button{flex:1}
+
+  .daybar{
+    display:flex;overflow-x:auto;margin:14px 0 24px;border-radius:9px;scrollbar-width:none
+  }
+  .daybar::-webkit-scrollbar{display:none}
+  .daytab{flex:0 0 92px;min-height:70px;border-right:1px solid var(--line)}
+  .day-number{font-size:18px}
+
+  .section-head{margin-bottom:10px}
+  .section-head-left{gap:7px}
+  .section-head h2{font-size:23px}
+  .section-date{font-size:10px}
+
+  .class-row{
+    grid-template-columns:82px minmax(0,1fr) auto;
+    gap:0 12px;
+    padding:15px 13px;
+    min-height:0;
+    align-items:start;
+  }
+  .time-main{font-size:11px;line-height:1.45}
+  .time-duration{font-size:9px;margin-top:4px}
+  .subject{font-size:15px}
+  .room-cell{grid-column:2;margin-top:9px}
+  .room-title{font-size:8px}
+  .room{font-size:12px}
+  .row-actions{
+    grid-column:3;
+    grid-row:1 / span 2;
+    align-self:start;
+    flex-direction:column;
+  }
+  .icon-btn{min-width:34px;min-height:34px;padding:5px 7px}
+  .current-label{display:flex;margin:6px 0 0 0;font-size:8px;width:max-content}
+  .progress-wrap{grid-column:1 / -1;margin-top:12px}
+  .empty{min-height:230px}
+  .fields{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  textarea{height:260px}
+}
+@media(max-width:420px){
+  .daytab{flex-basis:84px}
+  .class-row{grid-template-columns:74px minmax(0,1fr) auto;gap:0 9px;padding:13px 11px}
+  .subject{font-size:14px}
+  .time-main{font-size:10px}
+  .type{font-size:9px;padding:3px 6px}
+  .room{font-size:11px}
+  .current-label{font-size:7px}
+}
+
+/* ================= PHONE-FIRST OVERRIDES ================= */
+@media (max-width:700px){
+  body{
+    background:#f7f8fa;
+  }
+  .app{
+    width:100%;
+    max-width:none;
+    padding:0 0 34px;
+  }
+
+  /* Compact app header */
+  .header{
+    position:relative;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:12px;
+    padding:18px 14px 14px;
+    border-bottom:1px solid var(--line);
+    background:#f7f8fa;
+  }
+  .eyebrow{
+    margin-bottom:3px;
+    font-size:9px;
+    letter-spacing:1.35px;
+  }
+  .brand-row{
+    display:block;
+  }
+  h1{
+    font-size:32px;
+    line-height:.95;
+    letter-spacing:-1.8px;
+  }
+  .clock{
+    margin-top:7px;
+    font-size:11px;
+  }
+  .header-actions{
+    width:auto;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+    min-width:124px;
+  }
+  .header-actions .btn{
+    display:none;
+  }
+  .header-actions .btn.primary{
+    display:block;
+    width:100%;
+    padding:9px 10px;
+    font-size:12px;
+    border-radius:8px;
+    order:1;
+  }
+  .format-toggle{
+    width:100%;
+    order:2;
+    border-radius:8px;
+  }
+  .format-toggle button{
+    padding:7px 6px;
+    font-size:10px;
+  }
+
+  /* Horizontal day rail */
+  .daybar{
+    margin:0;
+    padding:12px 10px 13px;
+    display:flex;
+    gap:7px;
+    overflow-x:auto;
+    border:0;
+    border-bottom:1px solid var(--line);
+    border-radius:0;
+    box-shadow:none;
+    background:#f7f8fa;
+    scrollbar-width:none;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+  }
+  .daybar::-webkit-scrollbar{display:none}
+  .daytab{
+    flex:0 0 68px;
+    min-height:62px;
+    padding:9px 9px 8px;
+    border:1px solid #e0e3e8 !important;
+    border-radius:10px;
+    background:#fff;
+    scroll-snap-align:start;
+    text-align:left;
+  }
+  .daytab:hover{background:#fff}
+  .daytab.active{
+    border-color:#b8ccfa !important;
+    background:#eef4ff;
+  }
+  .daytab.active::after{height:2px;border-radius:0 0 10px 10px}
+  .day-short{
+    font-size:9px;
+    letter-spacing:.7px;
+  }
+  .day-full{
+    display:none;
+  }
+  .day-number{
+    right:9px;
+    top:8px;
+    font-size:18px;
+    line-height:1;
+  }
+  .day-count{
+    left:9px;
+    right:auto;
+    bottom:8px;
+    font-size:9px;
+  }
+  .today-label{
+    left:auto;
+    right:9px;
+    bottom:8px;
+    font-size:7px;
+    letter-spacing:.7px;
+  }
+  .daytab.today:not(.active) .day-short{
+    color:var(--blue);
+  }
+
+  main{
+    width:100%;
+  }
+
+  .section-head{
+    margin:0;
+    padding:18px 14px 12px;
+    align-items:flex-end;
+    border-bottom:0;
+  }
+  .section-head-left{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:3px;
+  }
+  .section-head h2{
+    font-size:25px;
+    letter-spacing:-1.1px;
+  }
+  .section-date{
+    font-size:10px;
+  }
+  .section-meta{
+    font-size:10px;
+    padding-bottom:2px;
+  }
+
+  /* Timeline-style schedule on phones */
+  .schedule{
+    margin:0 10px;
+    border:1px solid var(--line);
+    border-top:2px solid #16181c;
+    border-radius:11px;
+    box-shadow:0 5px 18px rgba(20,24,31,.045);
+    overflow:hidden;
+    background:#fff;
+  }
+  .class-row{
+    position:relative;
+    display:grid;
+    grid-template-columns:72px minmax(0,1fr);
+    gap:0 12px;
+    padding:15px 11px 14px;
+    min-height:0;
+    border-bottom:1px solid var(--line);
+    background:#fff;
+  }
+  .class-row::after{
+    content:"";
+    position:absolute;
+    left:82px;
+    top:0;
+    bottom:0;
+    width:1px;
+    background:#eceef1;
+    pointer-events:none;
+  }
+  .class-row:last-child{border-bottom:0}
+  .class-row:hover{background:#fff}
+
+  .class-row.past{
+    background:#f8f9fa;
+  }
+  .class-row.past .subject,
+  .class-row.past .room,
+  .class-row.past .time-main{
+    color:#9ca2aa;
+  }
+
+  .class-row.current{
+    background:#f1f6ff;
+    padding-top:16px;
+    padding-bottom:15px;
+  }
+  .class-row.current::before{
+    left:0;
+    top:0;
+    bottom:0;
+    width:3px;
+    z-index:2;
+  }
+
+  .time-main{
+    position:relative;
+    z-index:1;
+    font-size:10px;
+    line-height:1.45;
+    font-weight:850;
+    padding-top:1px;
+    padding-right:2px;
+  }
+  .time-duration{
+    font-size:8px;
+    color:#a3a8b0;
+    margin-top:5px;
+  }
+
+  .subject{
+    position:relative;
+    z-index:1;
+    padding-left:2px;
+    padding-right:25px;
+    font-size:14px;
+    line-height:1.28;
+    letter-spacing:-.15px;
+    font-weight:780;
+  }
+  .submeta{
+    position:relative;
+    z-index:1;
+    padding-left:2px;
+    margin-top:7px;
+    gap:5px;
+  }
+  .type{
+    padding:3px 6px;
+    border-radius:4px;
+    font-size:8px;
+  }
+
+  .room-cell{
+    grid-column:2;
+    margin-top:9px;
+    padding-left:2px;
+    position:relative;
+    z-index:1;
+  }
+  .room-title{
+    font-size:7px;
+    letter-spacing:1px;
+    margin-bottom:3px;
+  }
+  .room{
+    font-size:11px;
+  }
+
+  .row-actions{
+    position:absolute;
+    right:8px;
+    top:12px;
+    z-index:3;
+    display:flex;
+    gap:4px;
+    flex-direction:row;
+    opacity:1;
+  }
+  .icon-btn{
+    min-width:31px;
+    min-height:30px;
+    padding:5px 7px;
+    border-radius:6px;
+    background:#fff;
+    font-size:10px;
+  }
+  .icon-btn.delete{
+    font-size:15px;
+    line-height:1;
+    min-width:30px;
+  }
+
+  .current-label{
+    display:flex;
+    width:max-content;
+    margin:5px 0 0 0;
+    font-size:7px;
+    letter-spacing:.7px;
+  }
+
+  /* Progress belongs underneath the content, full width */
+  .progress-wrap{
+    grid-column:1 / -1;
+    margin:13px 0 0;
+    padding:0 1px;
+    position:relative;
+    z-index:1;
+  }
+  .progress-meta{
+    margin-bottom:5px;
+    font-size:8px;
+  }
+  .progress-track{
+    height:5px;
+    background:#dfe7f8;
+  }
+  .progress-bar{
+    height:5px;
+  }
+
+  .empty{
+    min-height:210px;
+  }
+
+  /* Prevent the JSON / editor UI from ever widening the viewport */
+  .overlay{
+    padding:12px;
+  }
+  .modal{
+    width:100%;
+    max-height:90vh;
+    border-radius:12px;
+  }
+  .modal-head{
+    padding:16px 17px;
+  }
+  .modal-title{
+    font-size:18px;
+  }
+  .modal-body{
+    padding:17px;
+    overflow:auto;
+  }
+  .modal-foot{
+    padding:12px 17px calc(12px + env(safe-area-inset-bottom));
+  }
+  textarea{
+    height:255px;
+    min-height:200px;
+  }
+
+  /* Make the editor touch-friendly */
+  .fields{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  input{
+    min-height:42px;
+    font-size:16px;
+  }
+
+  /* Confirmation sheet feels native on phones */
+  #deleteOverlay{
+    align-items:flex-end;
+    padding:0;
+  }
+  #deleteOverlay .confirm-box{
+    width:100%;
+    max-width:none;
+    border-radius:16px 16px 0 0;
+    padding:20px 18px calc(18px + env(safe-area-inset-bottom));
+  }
+  .confirm-title{font-size:19px}
+  .confirm-text{font-size:12px}
+  .confirm-foot{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .confirm-foot .btn{
+    min-height:43px;
+  }
+}
+
+/* Very narrow phones: keep the schedule comfortably readable */
+@media(max-width:380px){
+  .app{padding-bottom:28px}
+  .header{
+    padding-left:11px;
+    padding-right:11px;
+  }
+  .header-actions{
+    min-width:116px;
+  }
+  h1{font-size:29px}
+  .clock{font-size:10px}
+  .daytab{flex-basis:64px}
+  .schedule{margin:0 8px}
+  .class-row{
+    grid-template-columns:68px minmax(0,1fr);
+    gap:0 11px;
+    padding-left:10px;
+    padding-right:9px;
+  }
+  .class-row::after{left:77px}
+  .subject{font-size:13px;padding-right:22px}
+  .time-main{font-size:9.5px}
+  .room{font-size:10.5px}
+  .icon-btn{min-width:28px;min-height:28px;padding:4px 6px}
+  .icon-btn.delete{min-width:28px}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="brand">
+      <p class="eyebrow">Academic schedule</p>
+      <div class="brand-row">
+        <h1>Timetable</h1>
+        <div class="clock" title="Your device's local time">
+          <span class="clock-dot"></span>
+          <span id="liveClock">--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn" id="importOpen">Import JSON</button>
+      <button class="btn" id="exportBtn">Export JSON</button>
+      <button class="btn primary" id="addBtn">+ Add class</button>
+      <div class="format-toggle" aria-label="Time format">
+        <button id="format12" data-format="12">12 HR</button>
+        <button id="format24" data-format="24">24 HR</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="daybar" id="daybar"></nav>
+
+  <main>
+    <div class="section-head">
+      <div class="section-head-left">
+        <h2 id="dayTitle">Monday</h2>
+        <span class="section-date" id="sectionDate"></span>
+      </div>
+      <div class="section-meta" id="classCount"></div>
+    </div>
+    <section class="schedule" id="schedule"></section>
+  </main>
+</div>
+
+<!-- Import JSON -->
+<div class="overlay" id="importOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="modal-title">Import timetable</h3>
+      <button class="close-btn" data-close="importOverlay">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="json-info">Paste a full week object, or paste a single-day array to replace the currently selected day.</p>
+      <textarea id="jsonInput" spellcheck="false"></textarea>
+    </div>
+    <div class="modal-foot">
+      <div class="status" id="importStatus"></div>
+      <div>
+        <button class="btn" id="loadCurrentBtn">Load current</button>
+        <button class="btn primary" id="applyJsonBtn">Apply JSON</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/edit class -->
+<div class="overlay" id="editorOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="modal-title" id="editorTitle">Add class</h3>
+      <button class="close-btn" data-close="editorOverlay">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field full">
+          <label for="subjectInput">Subject</label>
+          <input id="subjectInput" placeholder="e.g. Web Technology (PP)">
+        </div>
+        <div class="field full">
+          <label for="roomInput">Room</label>
+          <input id="roomInput" placeholder="e.g. GU_C-416">
+        </div>
+        <div class="field">
+          <label for="startInput">Start time</label>
+          <input id="startInput" type="time">
+        </div>
+        <div class="field">
+          <label for="endInput">End time</label>
+          <input id="endInput" type="time">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div>
+        <button class="btn" data-close="editorOverlay">Cancel</button>
+        <button class="btn primary" id="saveEntryBtn">Save class</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation -->
+<div class="overlay" id="deleteOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">!</div>
+    <h3 class="confirm-title">Delete this class?</h3>
+    <p class="confirm-text" id="deleteText">This class will be removed from your timetable.</p>
+    <div class="confirm-foot">
+      <button class="btn" data-close="deleteOverlay">Cancel</button>
+      <button class="btn danger" id="confirmDeleteBtn">Delete class</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const STORAGE_KEY="timetable-v5";
+  const FORMAT_KEY="timetable-time-format";
+
+  const initial={
+    "0":[
+      {"subject":"Design and Analysis of Algorithm (PP)","room":"GU_C-418","startTime":"14:35","endTime":"15:25"},
+      {"subject":"Mobile App Development (PP)","room":"GU_C-418","startTime":"15:30","endTime":"16:20"},
+      {"subject":"Professional Readiness (PR)","room":"GU_C-418","startTime":"16:20","endTime":"17:10"},
+      {"subject":"Professional Readiness (PR)","room":"GU_C-418","startTime":"17:10","endTime":"18:00"}
+    ],
+    "1":[
+      {"subject":"Software Engineering and Testing (PP)","room":"GU_C-415","startTime":"15:30","endTime":"16:20"},
+      {"subject":"Design and Analysis of Algorithm (PP)","room":"GU_C-413","startTime":"16:20","endTime":"17:10"},
+      {"subject":"Mobile App Development (PP)","room":"GU_C-413","startTime":"17:10","endTime":"18:00"}
+    ],
+    "2":[
+      {"subject":"Web Technology (PP)","room":"GU_C-416","startTime":"14:35","endTime":"15:25"},
+      {"subject":"Software Engineering and Testing (PP)","room":"GU_C-415","startTime":"15:30","endTime":"16:20"},
+      {"subject":"Design and Analysis of Algorithm (PP)","room":"GU_C-413","startTime":"16:20","endTime":"17:10"},
+      {"subject":"Mobile App Development (PP)","room":"GU_C-413","startTime":"17:10","endTime":"18:00"}
+    ],
+    "3":[
+      {"subject":"Web Technology (PP)","room":"GU_C-511","startTime":"14:35","endTime":"15:25"},
+      {"subject":"Software Engineering and Testing (PP)","room":"GU_C-415","startTime":"15:30","endTime":"16:20"},
+      {"subject":"Mobile App Development (PR)","room":"GU_C-407","startTime":"16:20","endTime":"17:10"},
+      {"subject":"Mobile App Development (PR)","room":"GU_C-407","startTime":"17:10","endTime":"18:00"}
+    ],
+    "4":[],"5":[],"6":[]
+  };
+
+  let data=deepClone(initial);
+  let editIndex=null;
+  let pendingDeleteIndex=null;
+  let selectedDay=getTodayIndex();
+  let timeFormat=loadTimeFormat();
+
+  const els={
+    daybar:document.getElementById("daybar"),
+    dayTitle:document.getElementById("dayTitle"),
+    sectionDate:document.getElementById("sectionDate"),
+    classCount:document.getElementById("classCount"),
+    schedule:document.getElementById("schedule"),
+    liveClock:document.getElementById("liveClock"),
+    importOverlay:document.getElementById("importOverlay"),
+    editorOverlay:document.getElementById("editorOverlay"),
+    deleteOverlay:document.getElementById("deleteOverlay"),
+    jsonInput:document.getElementById("jsonInput"),
+    importStatus:document.getElementById("importStatus"),
+    editorTitle:document.getElementById("editorTitle"),
+    subject:document.getElementById("subjectInput"),
+    room:document.getElementById("roomInput"),
+    start:document.getElementById("startInput"),
+    end:document.getElementById("endInput"),
+    deleteText:document.getElementById("deleteText"),
+    format12:document.getElementById("format12"),
+    format24:document.getElementById("format24")
+  };
+
+  function deepClone(v){return JSON.parse(JSON.stringify(v))}
+
+  function getTodayIndex(){
+    return (new Date()).getDay() === 0 ? 6 : (new Date()).getDay()-1;
+  }
+
+  function loadTimeFormat(){
+    const saved=localStorage.getItem(FORMAT_KEY);
+    return saved==="24" ? "24" : "12";
+  }
+
+  function setTimeFormat(format){
+    timeFormat=format==="24" ? "24" : "12";
+    localStorage.setItem(FORMAT_KEY,timeFormat);
+    render();
+    updateClock();
+  }
+
+  function escapeHTML(v){
+    return String(v).replace(/[&<>"']/g,c=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[c]));
+  }
+
+  function parseMinutes(value){
+    const [h,m]=String(value).split(":").map(Number);
+    return h*60+m;
+  }
+
+  function formatTime(value){
+    const [h,m]=value.split(":").map(Number);
+    if(timeFormat==="24") return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+    const suffix=h>=12?"PM":"AM";
+    const hh=(h%12)||12;
+    return `${hh}:${String(m).padStart(2,"0")} ${suffix}`;
+  }
+
+  function formatClock(date){
+    let h=date.getHours(), m=date.getMinutes(), s=date.getSeconds();
+    if(timeFormat==="24"){
+      return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    }
+    const suffix=h>=12?"PM":"AM";
+    h=(h%12)||12;
+    return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")} ${suffix}`;
+  }
+
+  function formatDate(date){
+    return new Intl.DateTimeFormat(undefined,{
+      weekday:"long",month:"short",day:"numeric"
+    }).format(date);
+  }
+
+  function duration(start,end){
+    const mins=parseMinutes(end)-parseMinutes(start);
+    return mins>0 ? `${mins} min` : "";
+  }
+
+  function typeFrom(subject){
+    const match=String(subject).match(/\(([^)]+)\)/);
+    return match ? match[1] : "";
+  }
+
+  function validate(week){
+    for(let d=0;d<7;d++){
+      if(!Array.isArray(week[String(d)])) throw new Error(`${DAYS[d]} must be an array.`);
+      week[String(d)].forEach((x,i)=>{
+        if(!x || Array.isArray(x) || typeof x!=="object"){
+          throw new Error(`${DAYS[d]}, class ${i+1}: invalid class entry.`);
+        }
+        for(const key of ["subject","room","startTime","endTime"]){
+          if(typeof x?.[key]!=="string" || !x[key].trim()){
+            throw new Error(`${DAYS[d]}, class ${i+1}: "${key}" is required.`);
+          }
+        }
+        if(parseMinutes(x.startTime)>=parseMinutes(x.endTime)){
+          throw new Error(`${DAYS[d]}, class ${i+1}: end time must be after start time.`);
+        }
+      });
+    }
+  }
+
+  function flattenDayEntries(value){
+    /*
+      Be forgiving about the common accidental shape:
+      "6": [[{...},{...}]]
+      instead of:
+      "6": [{...},{...}]
+      Flatten nested arrays recursively, while leaving class objects untouched.
+    */
+    if(!Array.isArray(value)) return value;
+    const result=[];
+    const stack=[...value];
+    while(stack.length){
+      const item=stack.shift();
+      if(Array.isArray(item)) stack.unshift(...item);
+      else result.push(item);
+    }
+    return result;
+  }
+
+  function normalize(input){
+    if(Array.isArray(input)){
+      const week={"0":[],"1":[],"2":[],"3":[],"4":[],"5":[],"6":[]};
+      week[String(selectedDay)]=flattenDayEntries(input);
+      return week;
+    }
+    if(!input || typeof input!=="object") throw new Error("JSON must be an array or a week object.");
+    const week={"0":[],"1":[],"2":[],"3":[],"4":[],"5":[],"6":[]};
+    for(let d=0;d<7;d++){
+      if(input[String(d)]!==undefined){
+        week[String(d)]=flattenDayEntries(input[String(d)]);
+      }
+    }
+    return week;
+  }
+
+  function sortData(){
+    for(let d=0;d<7;d++){
+      data[String(d)].sort((a,b)=>parseMinutes(a.startTime)-parseMinutes(b.startTime));
+    }
+  }
+
+  function save(){
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch(_){}
+  }
+
+  function load(){
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw)return;
+      const parsed=normalize(JSON.parse(raw));
+      validate(parsed);
+      data=parsed;
+      sortData();
+    }catch(_){}
+  }
+
+  function setStatus(message,isError=false){
+    els.importStatus.textContent=message;
+    els.importStatus.className="status"+(isError?" error":"");
+    clearTimeout(setStatus.timer);
+    setStatus.timer=setTimeout(()=>{
+      els.importStatus.textContent="";
+      els.importStatus.className="status";
+    },2800);
+  }
+
+  function writeJSON(){
+    els.jsonInput.value=JSON.stringify(data,null,2);
+  }
+
+  function classState(entry, nowMinutes, todayIndex, dayIndex){
+    if(dayIndex!==todayIndex) return "normal";
+    const start=parseMinutes(entry.startTime);
+    const end=parseMinutes(entry.endTime);
+    if(nowMinutes>=end) return "past";
+    if(nowMinutes>=start && nowMinutes<end) return "current";
+    return "upcoming";
+  }
+
+  function getCurrentClassIndex(){
+    const today=getTodayIndex();
+    const now=new Date();
+    const minutes=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+    const list=data[String(today)];
+    for(let i=0;i<list.length;i++){
+      const start=parseMinutes(list[i].startTime);
+      const end=parseMinutes(list[i].endTime);
+      if(minutes>=start && minutes<end)return i;
+    }
+    return -1;
+  }
+
+  function renderDaybar(){
+    const today=getTodayIndex();
+    els.daybar.innerHTML=DAYS.map((day,d)=>`
+      <button class="daytab ${d===selectedDay?"active":""} ${d===today?"today":""}" data-day="${d}">
+        <span class="day-short">${day.slice(0,3).toUpperCase()}</span>
+        <span class="day-full">${day}</span>
+        <span class="day-number">${d+1}</span>
+        <span class="day-count">${data[String(d)].length}</span>
+        ${d===today?'<span class="today-label">Today</span>':""}
+      </button>
+    `).join("");
+
+    els.daybar.querySelectorAll("[data-day]").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        selectedDay=Number(btn.dataset.day);
+        render();
+      });
+    });
+  }
+
+  function renderSchedule(){
+    const list=data[String(selectedDay)];
+    const now=new Date();
+    const today=getTodayIndex();
+    const nowMinutes=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+
+    els.dayTitle.textContent=DAYS[selectedDay];
+    els.sectionDate.textContent=selectedDay===today ? formatDate(now)+" · Today" : "";
+    els.classCount.textContent=list.length
+      ? `${list.length} ${list.length===1?"class":"classes"}`
+      : "No classes";
+
+    if(!list.length){
+      els.schedule.innerHTML='<div class="empty"><div><strong>Nothing scheduled.</strong>This day is gloriously free.</div></div>';
+      return;
+    }
+
+    const currentIndex=(selectedDay===today) ? getCurrentClassIndex() : -1;
+
+    els.schedule.innerHTML=list.map((x,i)=>{
+      const state=classState(x,nowMinutes,today,selectedDay);
+      const isCurrent=state==="current";
+      const start=parseMinutes(x.startTime);
+      const end=parseMinutes(x.endTime);
+      const progress=isCurrent ? Math.max(0,Math.min(100,((nowMinutes-start)/(end-start))*100)) : 0;
+      const type=typeFrom(x.subject);
+      const currentLabel=isCurrent
+        ? '<span class="current-label"><i></i>Live now</span>'
+        : "";
+      const progressHTML=isCurrent ? `
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <span>In progress</span>
+            <span>${Math.round(progress)}%</span>
+          </div>
+          <div class="progress-track"><div class="progress-bar" style="width:${progress}%"></div></div>
+        </div>
+      ` : "";
+
+      return `
+        <article class="class-row ${state}" data-row="${i}">
+          <div>
+            <div class="time-main">
+              ${escapeHTML(formatTime(x.startTime))} — ${escapeHTML(formatTime(x.endTime))}
+            </div>
+            <div class="time-duration">${escapeHTML(duration(x.startTime,x.endTime))}</div>
+          </div>
+
+          <div>
+            <div class="subject">${escapeHTML(x.subject)}${currentLabel}</div>
+            <div class="submeta">${type?`<span class="type">${escapeHTML(type)}</span>`:""}</div>
+          </div>
+
+          <div class="room-cell">
+            <div class="room-title">Room</div>
+            <div class="room">${escapeHTML(x.room)}</div>
+          </div>
+
+          <div class="row-actions">
+            <button class="icon-btn" data-edit="${i}" aria-label="Edit class">Edit</button>
+            <button class="icon-btn delete" data-delete="${i}" aria-label="Delete class">×</button>
+          </div>
+
+          ${progressHTML}
+        </article>
+      `;
+    }).join("");
+
+    els.schedule.querySelectorAll("[data-edit]").forEach(btn=>{
+      btn.addEventListener("click",()=>openEditor(Number(btn.dataset.edit)));
+    });
+    els.schedule.querySelectorAll("[data-delete]").forEach(btn=>{
+      btn.addEventListener("click",()=>askDelete(Number(btn.dataset.delete)));
+    });
+
+  }
+
+  function renderToggle(){
+    els.format12.classList.toggle("active",timeFormat==="12");
+    els.format24.classList.toggle("active",timeFormat==="24");
+  }
+
+  function render(){
+    renderDaybar();
+    renderToggle();
+    renderSchedule();
+  }
+
+  function updateClock(){
+    const now=new Date();
+    els.liveClock.textContent=formatClock(now);
+
+    /* Once the day changes at midnight, automatically jump to the new today. */
+    const actualToday=getTodayIndex();
+    if(actualToday!==selectedDay && document.body.dataset.userPickedDay!=="true"){
+      selectedDay=actualToday;
+      render();
+    }
+
+    /* Refresh state/progress every second. */
+    if(selectedDay===actualToday){
+      renderSchedule();
+    }
+  }
+
+  function chooseDay(day){
+    selectedDay=day;
+    document.body.dataset.userPickedDay="true";
+    render();
+  }
+
+  function resetDayFollow(){
+    document.body.dataset.userPickedDay="";
+    selectedDay=getTodayIndex();
+    render();
+  }
+
+  function openEditor(index=null){
+    editIndex=index;
+    const x=index===null?{}:data[String(selectedDay)][index];
+    els.editorTitle.textContent=index===null?`Add class · ${DAYS[selectedDay]}`:`Edit class · ${DAYS[selectedDay]}`;
+    els.subject.value=x.subject||"";
+    els.room.value=x.room||"";
+    els.start.value=x.startTime||"";
+    els.end.value=x.endTime||"";
+    els.editorOverlay.style.display="flex";
+    requestAnimationFrame(()=>els.subject.focus());
+  }
+
+  function close(id){
+    document.getElementById(id).style.display="none";
+  }
+
+  function saveEntry(){
+    const entry={
+      subject:els.subject.value.trim(),
+      room:els.room.value.trim(),
+      startTime:els.start.value,
+      endTime:els.end.value
+    };
+
+    if(!entry.subject||!entry.room||!entry.startTime||!entry.endTime){
+      alert("Fill in subject, room, start time and end time.");
+      return;
+    }
+    if(parseMinutes(entry.startTime)>=parseMinutes(entry.endTime)){
+      alert("End time must be after start time.");
+      return;
+    }
+
+    const list=data[String(selectedDay)];
+    if(editIndex===null) list.push(entry);
+    else list[editIndex]=entry;
+
+    sortData();
+    save();
+    close("editorOverlay");
+    render();
+    writeJSON();
+  }
+
+  function askDelete(index){
+    const entry=data[String(selectedDay)][index];
+    if(!entry)return;
+
+    pendingDeleteIndex=index;
+    els.deleteText.innerHTML=
+      `<b>${escapeHTML(entry.subject)}</b> at <b>${escapeHTML(formatTime(entry.startTime))}–${escapeHTML(formatTime(entry.endTime))}</b> in <b>${escapeHTML(entry.room)}</b> will be removed from your timetable.`;
+    els.deleteOverlay.style.display="flex";
+  }
+
+  function confirmDelete(){
+    if(pendingDeleteIndex===null)return;
+    const list=data[String(selectedDay)];
+
+    if(list[pendingDeleteIndex]){
+      list.splice(pendingDeleteIndex,1);
+      save();
+      render();
+      writeJSON();
+    }
+
+    pendingDeleteIndex=null;
+    close("deleteOverlay");
+  }
+
+  function importJSON(){
+    try{
+      const week=normalize(JSON.parse(els.jsonInput.value));
+      validate(week);
+      data=week;
+      sortData();
+      save();
+      render();
+      writeJSON();
+      setStatus("Timetable updated.");
+      setTimeout(()=>close("importOverlay"),450);
+    }catch(e){
+      setStatus(e.message||"Invalid JSON.",true);
+    }
+  }
+
+  function exportJSON(){
+    const text=JSON.stringify(data,null,2);
+    navigator.clipboard?.writeText(text).catch(()=>{});
+    const blob=new Blob([text],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="timetable.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById("importOpen").addEventListener("click",()=>{
+    writeJSON();
+    els.importStatus.textContent="";
+    els.importStatus.className="status";
+    els.importOverlay.style.display="flex";
+    requestAnimationFrame(()=>els.jsonInput.focus());
+  });
+
+  document.getElementById("applyJsonBtn").addEventListener("click",importJSON);
+  document.getElementById("loadCurrentBtn").addEventListener("click",writeJSON);
+  document.getElementById("exportBtn").addEventListener("click",exportJSON);
+  document.getElementById("addBtn").addEventListener("click",()=>openEditor());
+  document.getElementById("saveEntryBtn").addEventListener("click",saveEntry);
+  document.getElementById("confirmDeleteBtn").addEventListener("click",confirmDelete);
+
+  els.format12.addEventListener("click",()=>setTimeFormat("12"));
+  els.format24.addEventListener("click",()=>setTimeFormat("24"));
+
+  /* Clicking any day manually disables the midnight auto-follow until user returns to Today. */
+  els.daybar.addEventListener("click",(e)=>{
+    const btn=e.target.closest("[data-day]");
+    if(btn) chooseDay(Number(btn.dataset.day));
+  });
+
+  document.querySelectorAll("[data-close]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      close(btn.dataset.close);
+      if(btn.dataset.close==="deleteOverlay") pendingDeleteIndex=null;
+    });
+  });
+
+  [els.importOverlay,els.editorOverlay,els.deleteOverlay].forEach(overlay=>{
+    overlay.addEventListener("click",e=>{
+      if(e.target===overlay){
+        close(overlay.id);
+        if(overlay.id==="deleteOverlay")pendingDeleteIndex=null;
+      }
+    });
+  });
+
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){
+      [els.importOverlay,els.editorOverlay,els.deleteOverlay].forEach(x=>{
+        if(x.style.display==="flex")x.style.display="none";
+      });
+      pendingDeleteIndex=null;
+    }
+    if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){
+      if(els.editorOverlay.style.display==="flex")saveEntry();
+      if(els.importOverlay.style.display==="flex")importJSON();
+    }
+  });
+
+  /* Small helper: pressing Home on the day bar returns to today's schedule. */
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Home" && document.activeElement.tagName!=="TEXTAREA" && document.activeElement.tagName!=="INPUT"){
+      resetDayFollow();
+    }
+  });
+
+  load();
+
+  /*
+    Start on the real current day. The browser/device local clock drives
+    the active/past/upcoming state and the live progress bar.
+  */
+  selectedDay=getTodayIndex();
+  document.body.dataset.userPickedDay="";
+  render();
+  writeJSON();
+  updateClock();
+
+  /* On phones, center today's chip once after the first paint. */
+  requestAnimationFrame(() => {
+    const todayChip = els.daybar.querySelector(".today");
+    if(todayChip && window.innerWidth <= 700){
+      todayChip.scrollIntoView({behavior:"instant", block:"nearest", inline:"center"});
+    }
+  });
+
+  /* The state/progress is intentionally live. */
+  setInterval(updateClock,1000);
+})();
+</script>
+</body>
+</html>
